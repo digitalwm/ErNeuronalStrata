@@ -20,29 +20,29 @@ doAccept(LSocket, S) ->
     doAccept(LSocket, S).
 
 doClientLoop(Socket, S, L) ->
-    case gen_tcp:recv(Socket, 0, 30000) of
+    case gen_tcp:recv(Socket, 0, 5) of
         {ok, Data} ->
-	    IsClear = string:equal(Data, "#clr"),
+	    IsClear = string:str(Data, "#clr"),
 	    if 
-		IsClear == true ->
-		    doClientLoop(Socket,S, "");
-		true ->
-		    S ! {self(), {event, {L, Data}}},
-		    gen_tcp:send(Socket, "Ok\n"),
-		    doClientLoop(Socket, S, Data)
+			IsClear > 0 ->
+		    	doClientLoop(Socket,S, "");
+			true ->
+		    	S ! {self(), {event, {L, Data}}},
+		    	gen_tcp:send(Socket, "Ok\n"),
+		    	doClientLoop(Socket, S, Data)
 	    end;
 	{error, closed} ->
             ok;
 	{error, timeout} ->
-	    io:fwrite("Last data cleaned~n"),
 	    grabEventsAndSend(Socket),
-	    doClientLoop(Socket, S, "")
+		doClientLoop(Socket, S, L)
     end.
 
 grabEventsAndSend(Socket) ->
     receive
-	    {_, Data} ->
-		    gen_tcp:send(Socket, Data),
+	    {found, Location} ->
+			DataOut = lists:flatten(io_lib:format("(Status: found,Location: ~w)~n", [Location])),
+		    gen_tcp:send(Socket, [DataOut, 0]),
 		    grabEventsAndSend(Socket)
     after 0 ->
 	    ok

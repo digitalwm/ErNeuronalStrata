@@ -22,19 +22,28 @@ startLoop(Links, StoredMessage)->
 	{_, {init, NewMessage}}->
 	    io:fwrite("~w Node initialised~n",[self()]),
 	    startLoop(Links, {NewMessage, 0});
-	{_, {event, {PrevMessage, ActualMessage}}}->
+	{Source, {event, {PrevMessage, ActualMessage}}}->
 	    io:fwrite("~w Event catched~n",[self()]),
+		%% is the old message current node?
+		%% yes, so we look for the connection on the actual message
 	    if PrevMessage == Message ->
+			%%Is the actual message the same with the current node
+			%% yes
 		    if ActualMessage == Message ->
 			    io:fwrite("~w Linking to itself~n",[self()]),
+				%% Anounce that we have found ourselves
+				Source ! {found, self()},
+				%% Add more score to the hit count of the node
 			    startLoop(Links, makeStoredData(Message, HitCount + 2));
-		       true ->
+			%% no
+		    true ->
 			    io:fwrite("~w Looking up neighbors~n",[self()]),
 			    Value = lookupNeighbours(Links, ActualMessage),
 			    if Value == 1 ->
 				    io:fwrite("~w Node Found~n",[self()]),
+					Source ! {found, self()},
 				    startLoop(Links,makeStoredData(Message, HitCount + 1));
-			       true ->
+			    true ->
 				    io:fwrite("~w New Node added~n",[self()]),
 				    NewLink = create(),
 				    io:fwrite("~w Node created ~w~n",[self(),NewLink]),
@@ -47,7 +56,7 @@ startLoop(Links, StoredMessage)->
 		    end;
 	    true ->
 		    io:fwrite("~w Propagatig forward~n",[self()]),
-		    propagate(Links, {PrevMessage, ActualMessage}),
+		    propagate(Links, {PrevMessage, ActualMessage}, Source),
 		    startLoop(Links, makeStoredData(Message,HitCount))			
 	    end;
 	{Source, {search, SearchedMessage}}->
@@ -65,13 +74,13 @@ startLoop(Links, StoredMessage)->
 makeStoredData(Message, HitCount)->
     {Message, HitCount}.
 
-propagate([], {PrevMessage, PropagatedMessage}) ->
+propagate([], {_, PropagatedMessage}, _) ->
     PropagatedMessage;
-propagate([H|T], {PrevMessage, PropagatedMessage})->
-    H ! {self(), {event, {PrevMessage, PropagatedMessage}}},
-    propagate(T, {PrevMessage, PropagatedMessage});
-propagate([H], {PrevMessage, PropagatedMessage}) ->
-    H ! {self(), {event, {PrevMessage, PropagatedMessage}}},
+propagate([H|T], {PrevMessage, PropagatedMessage}, Source)->
+    H ! {Source, {event, {PrevMessage, PropagatedMessage}}},
+    propagate(T, {PrevMessage, PropagatedMessage}, Source);
+propagate([H], {PrevMessage, PropagatedMessage}, Source) ->
+    H ! {Source, {event, {PrevMessage, PropagatedMessage}}},
     PropagatedMessage.
 
 lookupNeighbours(Links, SearchedMessage)->
