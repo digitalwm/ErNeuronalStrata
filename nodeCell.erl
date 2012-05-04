@@ -5,9 +5,11 @@
 %% 4. Add backward references / links
 
 -module(nodeCell).
--export([start/0, loop/0]).
+-import(io).
+-import(lists).
+-export([create/0, loop/0]).
 
-start()->
+create()->
     spawn(nodeCell,loop,[]).
 
 loop()->
@@ -34,7 +36,7 @@ startLoop(Links, StoredMessage)->
 				    startLoop(Links,makeStoredData(Message, HitCount + 1));
 			       true ->
 				    io:fwrite("~w New Node added~n",[self()]),
-				    NewLink = start(),
+				    NewLink = create(),
 				    io:fwrite("~w Node created ~w~n",[self(),NewLink]),
 				    io:fwrite("~w List available ~w~n",[self(),Links]),
 				    NewLinks = lists:append(Links, [NewLink]),

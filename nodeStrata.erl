@@ -1,14 +1,18 @@
--module(nodeStratta).
+-module(nodeStrata).
 -export([start/1]).
-
--import(nodeCell,[start/0]).
+-import(nodeCell,[create/0]).
+-import(gen_tcp).
+-import(string).
+-import(io).
 
 -define(TCP_OPTIONS,[list, {packet, 0}, {active, false}, {reuseaddr, true}]).
 
+start()->
+	start(2000).
 start(Port) ->
-    S = nodeCell:start(),
-    {ok, LSocket} = gen_tcp:listen(Port, ?TCP_OPTIONS),
-    doAccept(LSocket, S).
+    	S = nodeCell:create(),
+	{ok, LSocket} = gen_tcp:listen(Port, ?TCP_OPTIONS),
+	doAccept(LSocket, S).
 
 doAccept(LSocket, S) ->
     {ok, Socket} = gen_tcp:accept(LSocket),

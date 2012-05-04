@@ -1,0 +1,5 @@
+#!/usr/bin/escript -v
+-import(nodeStrata, [start/1]).
+
+main(_) ->
+	nodeStrata:start(2000).
