@@ -22,26 +22,37 @@ startLoop(Links, StoredMessage)->
 	{_, {init, NewMessage}}->
 	    io:fwrite("~w Node initialised~n",[self()]),
 	    startLoop(Links, {NewMessage, 0});
+	{Source, {getMeYourLinks}}->
+		io:fwrite("Asked about my links~n"),
+		Source ! {thisAreMyLinks, Links},
+		startLoop(Links, StoredMessage);
+	{Source, {whoAreYou}}->
+		io:fwrite("Asked about who I am - ~w ~w~n",[Message, HitCount]),
+		Source ! {self(), {iAm, {Message, HitCount}}},
+		startLoop(Links, StoredMessage);
 	{Source, {event, {PrevMessage, ActualMessage}}}->
 	    io:fwrite("~w Event catched~n",[self()]),
 		%% is the old message current node?
 		%% yes, so we look for the connection on the actual message
 	    if PrevMessage == Message ->
+			   
 			%%Is the actual message the same with the current node
 			%% yes
 		    if ActualMessage == Message ->
 			    io:fwrite("~w Linking to itself~n",[self()]),
 				%% Anounce that we have found ourselves
 				Source ! {found, self()},
+				
 				%% Add more score to the hit count of the node
 			    startLoop(Links, makeStoredData(Message, HitCount + 2));
+			   
 			%% no
 		    true ->
 			    io:fwrite("~w Looking up neighbors~n",[self()]),
 			    Value = lookupNeighbours(Links, ActualMessage),
-			    if Value == 1 ->
-				    io:fwrite("~w Node Found~n",[self()]),
-					Source ! {found, self()},
+			    if Value /= 0 ->
+				    io:fwrite("~w Node Found~n",[Value]),
+					Source ! {found, Value},
 				    startLoop(Links,makeStoredData(Message, HitCount + 1));
 			    true ->
 				    io:fwrite("~w New Node added~n",[self()]),
@@ -101,10 +112,10 @@ traverseSearch([H|T], SearchedMessage)->
 
 waitResults()->
     receive
-	{_, {searchResult, false}}->
+	{Source, {searchResult, false}}->
 	    Out = waitResults();
-	{_, {searchResult, true}} ->
-	    Out = 1
+	{Source, {searchResult, true}} ->
+	    Out = Source
     after 1050 ->
 	    Out = 0
     end,

@@ -41,7 +41,9 @@ doClientLoop(Socket, S, L) ->
 grabEventsAndSend(Socket) ->
     receive
 	    {found, Location} ->
-			DataOut = lists:flatten(io_lib:format("(Status: found,Location: ~w)~n", [Location])),
+			nodePredictor:create(Location,self());
+		{_, {predict, Message}}->
+			DataOut = lists:flatten(io_lib:format("(Status: predicted, Message: ~w)~n", [Message])),
 		    gen_tcp:send(Socket, [DataOut, 0]),
 		    grabEventsAndSend(Socket)
     after 0 ->
